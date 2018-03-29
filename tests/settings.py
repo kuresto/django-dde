@@ -62,3 +62,18 @@ CELERY_BROKER_URL = env.str('CELERY_BROKER_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = env.str('CELERY_RESULT_BACKEND', default='redis://redis:6379/1')
 
 EXPORTER_FROM_EMAIL = "teste@teste.com.br"
+
+# s3
+AWS_DEFAULT_ACL = env.str('AWS_S3_DEFAULT_ACL', default='private')
+AWS_QUERYSTRING_AUTH = env.bool('AWS_S3_QUERYSTRING_AUTH', default=True)
+AWS_S3_ACCESS_KEY_ID = env.str('AWS_S3_ACCESS_KEY_ID', default='')
+AWS_S3_SECRET_ACCESS_KEY = env.str('AWS_S3_SECRET_ACCESS_KEY', default='')
+AWS_S3_REGION_NAME = env.str('AWS_S3_REGION_NAME', default='us-east-1')
+AWS_S3_BUCKET_NAME = env.str('AWS_S3_BUCKET_NAME', default='')
+AWS_S3_ENDPOINT_URL = env.str('AWS_S3_ENDPOINT_URL', default='')
+AWS_S3_ADDRESSING_STYLE = env.str('AWS_S3_ADDRESSING_STYLE', default=None)
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+AWS_STORAGE_BUCKET_NAME = AWS_S3_BUCKET_NAME
+S3_USE_SIGV4 = True
+
