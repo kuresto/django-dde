@@ -3,13 +3,16 @@ help: ## make [target]
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 	@echo
 
-build:  ## Build Docker image for tests
+build:  create-bucket # Build Docker image for tests
 	@echo "--> Build Docker image for tests."
 	docker-compose --file docker/development/docker-compose.yml build
 
-build-no-cache:
+build-no-cache: create-bucket
 	@echo "--> Build Docker image for tests."
 	docker-compose --file docker/development/docker-compose.yml build --no-cache
+
+create-bucket:
+	docker-compose --file docker/development/docker-compose.yml run --rm test /bin/bash -c "dockerize -wait tcp://minio:9000 && mc --debug mb minio/test-exporter || true"
 
 up:
 	@echo "--> Docker up."
