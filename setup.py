@@ -22,7 +22,7 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages('src'),
     description='Asynchronous and Distributed Data Exporter from a Django QuerySet',
-    long_description=open(os.path.join(ROOT, 'README.md'), 'r', encoding='utf8').read(),
+    long_description=open(os.path.join(ROOT, 'README.MD'), 'r', encoding='utf8').read(),
     install_requires=base_requires,
     setup_requires=base_requires,
     extras_require={

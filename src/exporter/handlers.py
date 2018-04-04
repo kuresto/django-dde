@@ -67,20 +67,30 @@ class DefaultFileHandler(BaseHandler):
 
 
 class S3FileHandler(BaseHandler):
+    parts = []
+    multipart_upload = None
+    parts_mapping = []
+
     def __init__(self, exporter, path_name):
         super().__init__(exporter, path_name)
 
-        self.client = boto3.resource('s3', region_name=getattr(settings, 'AWS_S3_REGION_NAME'),
-                                     endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL'),
-                                     aws_access_key_id=getattr(settings, 'AWS_S3_ACCESS_KEY_ID'),
-                                     aws_secret_access_key=getattr(settings, 'AWS_S3_SECRET_ACCESS_KEY'),
-                                     )
+        self.resource = boto3.resource('s3', region_name=getattr(settings, 'AWS_S3_REGION_NAME'),
+                                       endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL'),
+                                       aws_access_key_id=getattr(settings, 'AWS_S3_ACCESS_KEY_ID'),
+                                       aws_secret_access_key=getattr(settings, 'AWS_S3_SECRET_ACCESS_KEY'),
+                                       )
 
-        self.bucket = self.client.Bucket(getattr(settings, 'AWS_S3_BUCKET_NAME'))
+        self.bucket_name = getattr(settings, 'AWS_S3_BUCKET_NAME')
 
-    def _create_header(self):
+    def collect_parts(self):
+        self.parts.append(self._create_header_file())
+
+        for chunk in self.exporter.chunks.all():
+            self.parts.append(str(chunk.file))
+
+    def _create_header_file(self):
         header = ExporterHelper.get_header(self.exporter.attrs)
-        file_name = f'reports/{self.exporter.uuid}/header.csv'
+        file_name = f"reports/{self.exporter.uuid}/header.csv"
 
         with tempfile.NamedTemporaryFile(mode='w+', suffix='.csv', delete=True, encoding="utf-8") as f:
             writer = csv.writer(f, delimiter=str(';'))
@@ -91,5 +101,17 @@ class S3FileHandler(BaseHandler):
 
         return file_name
 
-    def proccess(self):
-        header = self._create_header()
+    def create_bucket(self):
+        self.multipart_upload = self.resource.create_multipart_upload(Bucket=self.bucket_name, Key=self.path_name)
+
+    def upload_part(self):
+        for i, part in enumerate(self.parts):
+            response = self.resource.upload_part_copy(Bucket=self.bucket_name, Key=self.path_name, PartNumber=i,
+                                                      UploadId=self.multipart_upload['UploadId'], CopySource=part)
+
+            self.parts_mapping.append({"ETag": response['CopyPartResult']['ETag'][1:-1], "PartNumber": i})
+
+    def complete(self):
+        self.resource.complete_multipart_upload(Bucket=self.bucket_name, Key=self.path_name,
+                                                UploadId=self.multipart_upload['UploadId'],
+                                                MultipartUpload={'Parts': self.parts_mapping})
