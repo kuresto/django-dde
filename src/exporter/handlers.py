@@ -49,3 +49,13 @@ class FileHandler:
             self.exporter.file.save(self.path_name, File(f))
 
         return self.exporter
+
+
+class DefaultFileHandler:
+    def __init__(self):
+        pass
+
+
+class S3FileHandler:
+    def __init__(self):
+        pass
