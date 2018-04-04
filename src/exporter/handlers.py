@@ -12,7 +12,8 @@ from .utils import ExporterHelper
 
 class FileHandler:
     VALID_HANDLERS = Choices(
-        ("default_storage", _("default_storage"))
+        ("default_storage", _("default_storage")),
+        ("s3", _("s3"))
     )
 
     def __init__(self, exporter, path_name, target_storage='default_storage'):
@@ -30,7 +31,18 @@ class FileHandler:
 
         return storage
 
-    def _proccess_default_storage(self):
+
+class BaseHandler:
+    def __init__(self, exporter, path_name):
+        self.exporter = exporter
+        self.path_name = path_name
+
+    def proccess(self):
+        raise NotImplementedError(_("Not implemented"))
+
+
+class DefaultFileHandler(BaseHandler):
+    def procces(self):
         """ Join the file_list (chunked files) into one then saves and return the saved path """
         header = ExporterHelper.get_header(self.exporter.attrs)
 
@@ -51,11 +63,6 @@ class FileHandler:
         return self.exporter
 
 
-class DefaultFileHandler:
-    def __init__(self):
-        pass
-
-
-class S3FileHandler:
-    def __init__(self):
+class S3FileHandler(BaseHandler):
+    def process(self):
         pass
