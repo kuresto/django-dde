@@ -2,9 +2,12 @@ import csv
 import tempfile
 import codecs
 
+import boto3
+
 from django.core.files.storage import default_storage
 from django.core.files.base import File
 from django.utils.translation import ugettext as _
+from django.conf import settings
 from model_utils.choices import Choices
 
 from .utils import ExporterHelper
@@ -42,7 +45,7 @@ class BaseHandler:
 
 
 class DefaultFileHandler(BaseHandler):
-    def procces(self):
+    def proccess(self):
         """ Join the file_list (chunked files) into one then saves and return the saved path """
         header = ExporterHelper.get_header(self.exporter.attrs)
 
@@ -64,5 +67,29 @@ class DefaultFileHandler(BaseHandler):
 
 
 class S3FileHandler(BaseHandler):
-    def process(self):
-        pass
+    def __init__(self, exporter, path_name):
+        super().__init__(exporter, path_name)
+
+        self.client = boto3.resource('s3', region_name=getattr(settings, 'AWS_S3_REGION_NAME'),
+                                     endpoint_url=getattr(settings, 'AWS_S3_ENDPOINT_URL'),
+                                     aws_access_key_id=getattr(settings, 'AWS_S3_ACCESS_KEY_ID'),
+                                     aws_secret_access_key=getattr(settings, 'AWS_S3_SECRET_ACCESS_KEY'),
+                                     )
+
+        self.bucket = self.client.Bucket(getattr(settings, 'AWS_S3_BUCKET_NAME'))
+
+    def _create_header(self):
+        header = ExporterHelper.get_header(self.exporter.attrs)
+        file_name = f'reports/{self.exporter.uuid}/header.csv'
+
+        with tempfile.NamedTemporaryFile(mode='w+', suffix='.csv', delete=True, encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter=str(';'))
+            writer.writerow(header)
+            f.flush()
+
+            self.exporter.file.save(file_name, File(f))
+
+        return file_name
+
+    def proccess(self):
+        header = self._create_header()
